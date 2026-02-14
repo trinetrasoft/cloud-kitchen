@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id @default(uuid())
+  clerkId       String?   @unique
+  email         String    @unique
+  phone         String?   @unique
+  firstName     String
+  lastName      String
+  role          Role      @default(CUSTOMER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  addresses     UserAddress[]
+  orders        Order[]
+  subscriptions Subscription[]
+  reviews       Review[]
+  kitchens      Kitchen[]
+}
+
+enum Role {
+  CUSTOMER
+  KITCHEN_OWNER
+  ADMIN
+  DRIVER
+}
+
+model UserAddress {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  street    String
+  city      String
+  state     String
+  zipCode   String
+  latitude  Float?
+  longitude Float?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Kitchen {
+  id                  String             @id @default(uuid())
+  ownerId             String
+  owner               User               @relation(fields: [ownerId], references: [id])
+  name                String
+  slug                String             @unique
+  description         String?
+  story               String?            @db.Text
+  cuisineTypes        Json
+  regionTags          Json
+  street              String
+  city                String
+  state               String
+  zipCode             String
+  latitude            Float
+  longitude           Float
+  phone               String
+  email               String
+  imageUrl            String?
+  verificationStatus  VerificationStatus @default(PENDING)
+  hygieneScore        String?
+  healthInspectionUrl String?
+  isActive            Boolean            @default(true)
+  commissionRate      Float              @default(15.0)
+  avgPrepTimeMinutes  Int                @default(30)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  menuItems MenuItem[]
+  orders    OrderItem[]
+  reviews   Review[]
+
+  @@index([slug])
+  @@index([city, state])
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  CERTIFIED
+  SUSPENDED
+}
+
+model MenuItem {
+  id                     String   @id @default(uuid())
+  kitchenId              String
+  kitchen                Kitchen  @relation(fields: [kitchenId], references: [id], onDelete: Cascade)
+  name                   String
+  slug                   String
+  description            String?
+  category               String
+  price                  Float
+  preparationTimeMinutes Int      @default(20)
+  servingSize            String?
+  spiceLevel             Int?
+  dietaryTags            Json
+  ingredients            Json?
+  allergens              Json?
+  imageUrl               String?
+  isAvailable            Boolean  @default(true)
+  isSeasonalSpecial      Boolean  @default(false)
+  displayOrder           Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  orderItems OrderItem[]
+
+  @@index([kitchenId])
+  @@index([category])
+}
+
+model Subscription {
+  id                   String             @id @default(uuid())
+  userId               String
+  user                 User               @relation(fields: [userId], references: [id])
+  tier                 SubscriptionTier
+  status               SubscriptionStatus @default(ACTIVE)
+  stripeSubscriptionId String?            @unique
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([userId])
+}
+
+enum SubscriptionTier {
+  BASIC
+  FAMILY
+  PARTY_PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELED
+  EXPIRED
+}
+
+model Order {
+  id                    String        @id @default(uuid())
+  orderNumber           String        @unique
+  userId                String
+  user                  User          @relation(fields: [userId], references: [id])
+  orderType             OrderType     @default(REGULAR)
+  status                OrderStatus   @default(PENDING)
+  totalAmount           Float
+  discountAmount        Float         @default(0)
+  deliveryFee           Float         @default(0)
+  platformFee           Float
+  taxAmount             Float
+  finalAmount           Float
+  deliveryAddress       Json
+  scheduledDeliveryTime DateTime?
+  estimatedDeliveryTime DateTime?
+  actualDeliveryTime    DateTime?
+  specialInstructions   String?       @db.Text
+  paymentIntentId       String?
+  paymentStatus         PaymentStatus @default(PENDING)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  items OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum OrderType {
+  REGULAR
+  PARTY_CATERING
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model OrderItem {
+  id                  String      @id @default(uuid())
+  orderId             String
+  order               Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  kitchenId           String
+  kitchen             Kitchen     @relation(fields: [kitchenId], references: [id])
+  menuItemId          String
+  menuItem            MenuItem    @relation(fields: [menuItemId], references: [id])
+  quantity            Int
+  priceAtTime         Float
+  specialInstructions String?
+  status              OrderStatus @default(PENDING)
+
+  @@index([orderId])
+  @@index([kitchenId])
+}
+
+model Review {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
+  kitchenId          String
+  kitchen            Kitchen  @relation(fields: [kitchenId], references: [id])
+  orderId            String
+  overallRating      Int
+  tasteRating        Int?
+  authenticityRating Int?
+  portionRating      Int?
+  packagingRating    Int?
+  timelinessRating   Int?
+  reviewText         String?  @db.Text
+  isAuthentic        Boolean?
+  photos             Json?
+  kitchenResponse    String?  @db.Text
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([kitchenId])
+  @@index([userId])
+}
