@@ -46,8 +46,21 @@ export async function GET(
           kitchen.reviews.length
         : 0;
 
+    const toArray = (val: unknown): string[] =>
+      Array.isArray(val) ? val : typeof val === "string" ? JSON.parse(val) : [];
+
+    const normalizedMenuItems = kitchen.menuItems.map((item) => ({
+      ...item,
+      dietaryTags: toArray(item.dietaryTags),
+      ingredients: toArray(item.ingredients),
+      allergens: toArray(item.allergens),
+    }));
+
     return NextResponse.json({
       ...kitchen,
+      cuisineTypes: toArray(kitchen.cuisineTypes),
+      regionTags: toArray(kitchen.regionTags),
+      menuItems: normalizedMenuItems,
       avgRating: Math.round(avgRating * 10) / 10,
       reviewCount: kitchen._count.reviews,
     });

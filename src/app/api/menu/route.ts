@@ -28,14 +28,21 @@ export async function GET(request: Request) {
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
     });
 
+    const toArray = (val: unknown): string[] =>
+      Array.isArray(val) ? val : typeof val === "string" ? JSON.parse(val) : [];
+
     const filtered = dietary
-      ? menuItems.filter((item) => {
-          const tags = item.dietaryTags as string[];
-          return tags.includes(dietary);
-        })
+      ? menuItems.filter((item) => toArray(item.dietaryTags).includes(dietary))
       : menuItems;
 
-    return NextResponse.json(filtered);
+    const normalized = filtered.map((item) => ({
+      ...item,
+      dietaryTags: toArray(item.dietaryTags),
+      ingredients: toArray(item.ingredients),
+      allergens: toArray(item.allergens),
+    }));
+
+    return NextResponse.json(normalized);
   } catch (error) {
     console.error("Error fetching menu items:", error);
     return NextResponse.json(

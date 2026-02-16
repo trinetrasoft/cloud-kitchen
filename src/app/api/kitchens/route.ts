@@ -29,15 +29,16 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
+    const toArray = (val: unknown): string[] =>
+      Array.isArray(val) ? val : typeof val === "string" ? JSON.parse(val) : [];
+
     const kitchensWithRatings = kitchens
       .filter((kitchen) => {
         if (cuisine) {
-          const types = kitchen.cuisineTypes as string[];
-          if (!types.includes(cuisine)) return false;
+          if (!toArray(kitchen.cuisineTypes).includes(cuisine)) return false;
         }
         if (region) {
-          const tags = kitchen.regionTags as string[];
-          if (!tags.includes(region)) return false;
+          if (!toArray(kitchen.regionTags).includes(region)) return false;
         }
         return true;
       })
@@ -51,6 +52,8 @@ export async function GET(request: Request) {
         const { reviews, _count, ...rest } = kitchen;
         return {
           ...rest,
+          cuisineTypes: toArray(kitchen.cuisineTypes),
+          regionTags: toArray(kitchen.regionTags),
           avgRating: Math.round(avgRating * 10) / 10,
           reviewCount: _count.reviews,
           menuItemCount: _count.menuItems,

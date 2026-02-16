@@ -10,6 +10,12 @@ interface KitchenCardProps {
 }
 
 export function KitchenCard({ kitchen }: KitchenCardProps) {
+  const tags: string[] = Array.isArray(kitchen.regionTags)
+    ? kitchen.regionTags
+    : typeof kitchen.regionTags === "string"
+      ? JSON.parse(kitchen.regionTags)
+      : [];
+
   return (
     <Link href={`/kitchens/${kitchen.slug}`}>
       <Card className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden">
@@ -66,7 +72,7 @@ export function KitchenCard({ kitchen }: KitchenCardProps) {
             </span>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {kitchen.regionTags.slice(0, 3).map((tag) => (
+            {tags.slice(0, 3).map((tag) => (
               <Badge key={tag} variant="secondary" className="text-xs">
                 {tag}
               </Badge>

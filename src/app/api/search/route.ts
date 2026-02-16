@@ -53,7 +53,15 @@ export async function GET(request: Request) {
       }),
     ]);
 
-    return NextResponse.json({ kitchens, menuItems });
+    const toArray = (val: unknown): string[] =>
+      Array.isArray(val) ? val : typeof val === "string" ? JSON.parse(val) : [];
+
+    const normalizedKitchens = kitchens.map((k) => ({
+      ...k,
+      cuisineTypes: toArray(k.cuisineTypes),
+    }));
+
+    return NextResponse.json({ kitchens: normalizedKitchens, menuItems });
   } catch (error) {
     console.error("Error searching:", error);
     return NextResponse.json(
